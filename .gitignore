@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+
+# Django
+/static/
+media/
+.env
+
+# Database
+/db.sqlite3
+
+# Virtual environments
+env/
+.venv/
+venv/
+ENV/
+
+# VSCode / PyCharm / IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uvicorn/Logs
+*.log
+
+# Node (if you add a frontend later)
+node_modules/

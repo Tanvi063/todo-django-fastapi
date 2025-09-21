@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Todo App</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .completed { text-decoration: line-through; color: #6c757d; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="#">Todo App</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent" aria-controls="navContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0"></ul>
+        <div class="d-flex align-items-center gap-3">
+          <div class="form-check form-switch text-white">
+            <input class="form-check-input" type="checkbox" id="darkSwitch">
+            <label class="form-check-label" for="darkSwitch">Dark</label>
+          </div>
+          <div class="form-check form-switch text-white">
+            <input class="form-check-input" type="checkbox" id="notifSwitch">
+            <label class="form-check-label" for="notifSwitch">Notify</label>
+          </div>
+          <button id="btn-notif-test" class="btn btn-outline-light btn-sm" type="button">Test</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Toasts (Bootstrap) -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1080">
+      <div id="toast-container"></div>
+    </div>
+
+    <!-- Progress -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <div class="fw-semibold">Progress</div>
+          <div class="small text-muted">{{ count_completed }}/{{ count_total }} completed</div>
+        </div>
+        <div class="progress" role="progressbar" aria-label="Completion" aria-valuemin="0" aria-valuemax="100">
+          <div id="progress-bar" class="progress-bar" style="width: {{ percent_completed }}%">{{ percent_completed }}%</div>
+        </div>
+      </div>
+    </div>
+
+    {% if messages %}
+      <div class="row">
+        <div class="col-12">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="row g-4">
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm">
+          <div class="card-header bg-primary text-white">Add a new task</div>
+          <div class="card-body">
+            <form method="post" enctype="multipart/form-data" class="row g-3">
+              {% csrf_token %}
+              <div class="col-12">
+                {{ form.title.label_tag }}
+                {{ form.title }}
+              </div>
+              <div class="col-12">
+                {{ form.description.label_tag }}
+                {{ form.description }}
+              </div>
+              <div class="col-md-6">
+                {{ form.priority.label_tag }}
+                {{ form.priority }}
+              </div>
+              <div class="col-md-6">
+                {{ form.due_date.label_tag }}
+                {{ form.due_date }}
+              </div>
+              <div class="col-12">
+                {{ form.image.label_tag }}
+                {{ form.image }}
+              </div>
+              <div class="col-12 d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">Add Task</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>My Tasks</span>
+            <div class="d-flex align-items-center gap-2">
+              <form id="search-form" class="d-inline-block me-2" method="get" action="">
+                <div class="input-group input-group-sm">
+                  <input id="search-input" class="form-control" type="text" name="q" value="{{ q }}" placeholder="Search tasks...">
+                  <button class="btn btn-outline-secondary" type="submit">Search</button>
+                </div>
+              </form>
+              <select id="sort-select" class="form-select form-select-sm me-2" style="width:auto;">
+                <option value="created_desc" selected>Newest</option>
+                <option value="created_asc">Oldest</option>
+                <option value="due_asc">Due Soon</option>
+                <option value="priority_desc">Priority High→Low</option>
+              </select>
+              <button id="btn-clear-completed" class="btn btn-sm btn-outline-danger" type="button">Clear Completed</button>
+            </div>
+          </div>
+          <div class="list-group list-group-flush">
+            <div class="list-group-item bg-light fw-semibold">Pending ({{ tasks_pending|length }})</div>
+            {% for t in tasks_pending %}
+              <div class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-0 d-flex align-items-start gap-3">
+                  {% if t.image %}
+                    <a href="{{ t.image.url }}" target="_blank" rel="noopener noreferrer">
+                      <img src="{{ t.image.url }}" class="rounded" style="width:64px;height:64px;object-fit:cover;" alt="attachment">
+                    </a>
+                  {% endif %}
+                  <div>
+                    <div class="fw-semibold">{{ t.title }}
+                      {% if t.priority %}
+                        {% if t.priority == 'high' %}<span class="badge text-bg-danger ms-2">High</span>
+                        {% elif t.priority == 'medium' %}<span class="badge text-bg-warning ms-2">Medium</span>
+                        {% else %}<span class="badge text-bg-secondary ms-2">Low</span>{% endif %}
+                      {% endif %}
+                      {% if t.due_date %}
+                        <span class="badge {% if not t.completed and t.due_date|date:'Y-m-d' < today|date:'Y-m-d' %}text-bg-danger{% else %}text-bg-info{% endif %} ms-2">{{ t.due_date }}</span>
+                      {% endif %}
+                    </div>
+                    {% if t.description %}
+                      <div class="text-muted small">{{ t.description }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="ms-3">
+                  <a class="btn btn-sm btn-outline-success me-2" href="{% url 'tasks:toggle_complete' t.id %}">Mark Done</a>
+                  <a class="btn btn-sm btn-outline-danger" href="{% url 'tasks:delete_task' t.id %}" onclick="return confirm('Delete this task?')">Delete</a>
+                </div>
+              </div>
+            {% empty %}
+              <div class="list-group-item text-muted">No pending tasks.</div>
+            {% endfor %}
+
+            <div class="list-group-item bg-light fw-semibold">Completed ({{ tasks_completed|length }})</div>
+            {% for t in tasks_completed %}
+              <div class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-0 d-flex align-items-start gap-3">
+                  {% if t.image %}
+                    <a href="{{ t.image.url }}" target="_blank" rel="noopener noreferrer">
+                      <img src="{{ t.image.url }}" class="rounded" style="width:64px;height:64px;object-fit:cover;" alt="attachment">
+                    </a>
+                  {% endif %}
+                  <div>
+                    <div class="fw-semibold completed">{{ t.title }}
+                      {% if t.priority %}
+                        {% if t.priority == 'high' %}<span class="badge text-bg-danger ms-2">High</span>
+                        {% elif t.priority == 'medium' %}<span class="badge text-bg-warning ms-2">Medium</span>
+                        {% else %}<span class="badge text-bg-secondary ms-2">Low</span>{% endif %}
+                      {% endif %}
+                      {% if t.due_date %}
+                        <span class="badge text-bg-info ms-2">{{ t.due_date }}</span>
+                      {% endif %}
+                    </div>
+                    {% if t.description %}
+                      <div class="text-muted small">{{ t.description }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="ms-3">
+                  <a class="btn btn-sm btn-outline-secondary me-2" href="{% url 'tasks:toggle_complete' t.id %}">Mark Incomplete</a>
+                  <a class="btn btn-sm btn-outline-danger" href="{% url 'tasks:delete_task' t.id %}" onclick="return confirm('Delete this task?')">Delete</a>
+                </div>
+              </div>
+            {% empty %}
+              <div class="list-group-item text-muted">No completed tasks.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Theme only (no API hooks) to avoid Fetch errors
+    (function initTheme(){
+      const pref = localStorage.getItem('todo_theme') || 'light';
+      if (pref === 'dark') document.documentElement.setAttribute('data-bs-theme','dark');
+      const sw = document.getElementById('darkSwitch');
+      if (sw) {
+        sw.checked = (pref === 'dark');
+        sw.addEventListener('change', () => {
+          const mode = sw.checked ? 'dark' : 'light';
+          localStorage.setItem('todo_theme', mode);
+          document.documentElement.setAttribute('data-bs-theme', mode);
+        });
+      }
+    })();
+
+    // Desktop Notifications
+    (function initNotifications(){
+      const key = 'todo_notifs_enabled';
+      const sw = document.getElementById('notifSwitch');
+      const btnTest = document.getElementById('btn-notif-test');
+      const enabled = localStorage.getItem(key) === '1';
+      if (sw) sw.checked = enabled;
+
+      function maybeRequestPermission(){
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
+      }
+
+      function notify(title, body){
+        if (!('Notification' in window)) return;
+        if (localStorage.getItem(key) !== '1') return;
+        if (Notification.permission === 'granted') {
+          const n = new Notification(title || 'Todo App', { body: body || '', icon: '' });
+          setTimeout(() => n.close(), 4000);
+        }
+      }
+
+      sw?.addEventListener('change', () => {
+        if (sw.checked) {
+          localStorage.setItem(key, '1');
+          maybeRequestPermission();
+        } else {
+          localStorage.removeItem(key);
+        }
+      });
+
+      btnTest?.addEventListener('click', () => {
+        maybeRequestPermission();
+        notify('Todo App', 'This is a test notification');
+      });
+
+      // Fire notifications from Django flash messages (if any)
+      document.addEventListener('DOMContentLoaded', () => {
+        const alerts = document.querySelectorAll('.alert');
+        if (alerts.length) {
+          let combined = '';
+          alerts.forEach(a => combined += (a.textContent || '').trim() + '\n');
+          if (combined.trim()) notify('Todo App', combined.trim());
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
