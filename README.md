@@ -102,9 +102,7 @@ const data = await res.json();
 - Django UI: Top-right search box submits `q` via GET to `/`.
 - FastAPI: `GET /api/tasks?q=keyword`.
 
-## Environment & Secrets
-- This sample uses SQLite for simplicity. For production, consider PostgreSQL + environment variables for configuration.
-- Never commit secrets or private keys.
+
 
 ## How to Publish to GitHub
 1) Create a new repo on GitHub (without a README/.gitignore if you’ll push this existing tree).
@@ -119,5 +117,4 @@ git branch -M main
 git push -u origin main
 ```
 
-## License
-MIT (or your preferred license)
+
